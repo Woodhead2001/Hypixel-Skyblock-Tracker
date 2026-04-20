@@ -1,15 +1,20 @@
 {
-  "name": "react-app",
+  "name": "hypixel-tracker",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "dependencies": {
+    "@tauri-apps/api": "latest",
+    "@tauri-apps/cli": "latest",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "^5.0.1"
   },
   "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "react-build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

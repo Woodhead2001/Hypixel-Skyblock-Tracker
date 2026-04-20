@@ -1,0 +1,25 @@
+{
+  "productName": "Hypixel Tracker",
+  "version": "1.0.0",
+  "identifier": "com.hypixel.tracker",
+  "build": {
+    "beforeDevCommand": "npm run start",
+    "beforeBuildCommand": "npm run react-build",
+    "devUrl": "http://localhost:3000",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Hypixel Tracker",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
