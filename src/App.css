@@ -1,24 +1,9 @@
-.App {
-  text-align: center;
-}
+/* 
+  DEPRECATED: This file has been replaced by modular CSS files:
+  - src/styles/theme.css (colors, typography, global styles)
+  - src/styles/layout.css (app layout, navigation)
+  - src/styles/components.css (component-specific styles)
+  
+  Kept for reference only. All styles are now in src/styles/
+*/
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-header h1 {
-  margin: 0;
-  font-size: 3rem;
-}
-
-.App-header p {
-  font-size: 1.2rem;
-  margin-top: 1rem;
-}
