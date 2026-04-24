@@ -4,7 +4,7 @@ import './styles/layout.css';
 import './styles/components.css';
 import { api } from './api.js';
 
-import { Dashboard } from './components/Dashboard.jsx';
+import Dashboard from "./components/Dashboard.jsx";
 import { RecipeTracker } from './components/RecipeTracker.jsx';
 import { GoalTracker } from './components/GoalTracker.jsx';
 import { InventoryView } from './components/InventoryView.jsx';

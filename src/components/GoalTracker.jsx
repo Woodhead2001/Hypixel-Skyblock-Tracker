@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useGoals } from '../hooks/useGoals.js';
+//import { useGoals } from '../hooks/useGoals.js';
 
 export function GoalTracker() {
-  const { goals, refetch } = useGoals();
+//  const { goals, refetch } = useGoals();
   const [showForm, setShowForm] = useState(false);
   const [newGoal, setNewGoal] = useState({
     name: '',
