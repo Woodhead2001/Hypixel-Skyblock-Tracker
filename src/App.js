@@ -22,16 +22,7 @@ function App() {
   }, []);
 
   const loadData = async () => {
-    try {
-      const recipeData = await api.getRecipes();
-      const goalData = await api.getGoals();
-      setRecipes(recipeData);
-      setGoals(goalData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
       setLoading(false);
-    }
   };
 
   const renderPage = () => {

@@ -3,19 +3,22 @@
 
 mod db;
 mod commands;
+mod api;
 
 use tauri::Manager;
+use std::path::PathBuf;
 
 fn main() {
   tauri::Builder::default()
     .setup(|app| {
-      let app_handle = app.app_handle();
-      
       // Initialize database
-      let db_path = app.path_resolver()
-        .app_data_dir()
-        .expect("Failed to get app data dir")
-        .join("skyblock_tracker.db");
+      let app_data_dir = app.path().app_data_dir()
+        .expect("Failed to get app data dir");
+      
+      // Create directory if it doesn't exist
+      std::fs::create_dir_all(&app_data_dir).ok();
+      
+      let db_path = app_data_dir.join("skyblock_tracker.db");
       
       db::init_db(&db_path).expect("Failed to initialize database");
       
@@ -30,6 +33,8 @@ fn main() {
       commands::get_recipes,
       commands::add_goal,
       commands::get_goals,
+      commands::fetch_hypixel_player,
+      commands::save_player_data,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

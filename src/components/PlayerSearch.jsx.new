@@ -18,8 +18,6 @@ export function PlayerSearch() {
       setPlayerData(data);
       // Save to database
       await api.savePlayerData(username, JSON.stringify(data));
-      // Also save to localStorage for dashboard
-      localStorage.setItem('recentPlayer', JSON.stringify(data));
     } catch (err) {
       setError(err.message || 'Failed to find player. Check the username and try again.');
     } finally {

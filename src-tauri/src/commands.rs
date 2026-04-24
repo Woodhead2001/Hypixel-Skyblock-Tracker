@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::db::DbState;
+use crate::api::hypixel;
 
 #[derive(Serialize, Deserialize)]
 pub struct Recipe {
@@ -118,4 +119,23 @@ pub fn get_goals(state: tauri::State<DbState>) -> Result<Vec<Goal>, String> {
     .map_err(|e| format!("Failed to collect goals: {}", e))?;
   
   Ok(goals)
+}
+
+#[tauri::command]
+pub async fn fetch_hypixel_player(username: String) -> Result<serde_json::Value, String> {
+  hypixel::get_full_player_data(&username).await
+}
+
+#[tauri::command]
+pub fn save_player_data(state: tauri::State<DbState>, username: String, data: String) -> Result<(), String> {
+  let conn = state.db.lock().unwrap();
+  
+  conn
+    .execute(
+      "INSERT OR REPLACE INTO player_data (username, data) VALUES (?1, ?2)",
+      (&username, &data),
+    )
+    .map_err(|e| format!("Failed to save player data: {}", e))?;
+  
+  Ok(())
 }
