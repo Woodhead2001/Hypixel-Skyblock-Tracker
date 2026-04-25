@@ -1,6 +1,23 @@
 {
   "hypixel_api_key": "dd532b8d-84c1-4f4e-b2cc-6cdc4751987a",
+  "hypixel_api_url": "https://api.hypixel.net",
   "minecraft_uuid_lookup_url": "https://api.mojang.com/users/profiles/minecraft/",
-  "hypixel_skills_url": "https://api.hypixel.net/v2/resources/skyblock/skills/",
-  "hypixel_profiles_url": "https://api.hypixel.net/v2/skyblock/profiles?uuid="
+  "hypixel_skills_url": "https://api.hypixel.net/v2/resources/skyblock/skills",
+  "hypixel_profiles_url": "https://api.hypixel.net/v2/skyblock/profiles?uuid=",
+  "hypixel_items_url": "https://api.hypixel.net/v2/resources/skyblock/items",
+  "default_username": "amaxdumbidiot",
+  "craft_recursion_depth": 10,
+  "cache_duration": 3600000,
+  "skyblock_skills": [
+    "farming",
+    "mining",
+    "combat",
+    "foraging",
+    "fishing",
+    "enchanting",
+    "alchemy",
+    "carpentry",
+    "runecrafting",
+    "social"
+  ]
 }

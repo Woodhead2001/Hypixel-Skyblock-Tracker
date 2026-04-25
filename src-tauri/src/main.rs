@@ -7,6 +7,7 @@ mod config;
 use tauri::Manager;
 use commands::*;
 use api::hypixel_api::{get_player_uuid, fetch_and_cache_profiles};
+use config::loader::load_config;
 
 fn main() {
     env_logger::init();
@@ -25,7 +26,15 @@ fn main() {
             // ⭐ Fetch SkyBlock data on startup
             // -------------------------------
             tauri::async_runtime::spawn(async move {
-                let username = "amaxdumbidiot"; // later: make dynamic
+                let config = match load_config() {
+                    Ok(cfg) => cfg,
+                    Err(e) => {
+                        eprintln!("Failed to load config: {}", e);
+                        return;
+                    }
+                };
+                
+                let username = &config.default_username;
                 if let Ok(uuid) = get_player_uuid(username).await {
                     let _ = fetch_and_cache_profiles(&uuid).await;
                 }
@@ -37,7 +46,8 @@ fn main() {
             fetch_hypixel_player,
             get_player_skills,
             get_player_profiles,
-            get_minions
+            get_minions,
+            get_app_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
