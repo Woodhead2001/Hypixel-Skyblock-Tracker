@@ -4,7 +4,7 @@ import { useProfiles } from "../contexts/ProfileContext.jsx";
 
 export default function CollectionsPage() {
   const { profiles, selectedProfileId } = useProfiles();
-  const [collections, setCollections] = useState(null);
+  const [minions, setMinions] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const selectedProfile = profiles.find(
@@ -20,7 +20,8 @@ export default function CollectionsPage() {
           cuteName: selectedProfile.cute_name,
         });
 
-        setCollections(data.collections);
+        // FIX: backend returns { minions: [...] }
+        setMinions(data.minions);
       } finally {
         setLoading(false);
       }
@@ -30,32 +31,26 @@ export default function CollectionsPage() {
   }, [selectedProfile]);
 
   if (loading) return <p>Loading minions…</p>;
-  if (!collections) return <p>No minion data available.</p>;
+  if (!minions) return <p>No minion data available.</p>;
 
   return (
     <div className="collections-page">
       <h2>Minion Collections</h2>
 
-      {Object.entries(collections).map(([skill, items]) => (
-        <div key={skill} className="skill-section">
-          <h2>{skill}</h2>
+      {minions.map((m) => (
+        <div key={m.id} className="minion-row">
+          <h3>{m.name}</h3>
 
-          {items.map((m) => (
-            <div key={m.id} className="minion-row">
-              <h3>{m.name}</h3>
-
-              <div className="tier-grid">
-                {m.tiers.map((t) => (
-                  <div
-                    key={t.tier}
-                    className={`tier-box ${t.owned ? "owned" : "missing"}`}
-                  >
-                    {t.tier}
-                  </div>
-                ))}
+          <div className="tier-grid">
+            {m.tiers.map((t) => (
+              <div
+                key={t.tier}
+                className={`tier-box ${t.owned ? "owned" : "missing"}`}
+              >
+                {t.tier}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ))}
     </div>
