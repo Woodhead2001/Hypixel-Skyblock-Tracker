@@ -1,16 +1,27 @@
 // src-tauri/src/commands/profiles.rs
 
-use serde_json::Value;
-use crate::api::hypixel_api::{get_player_uuid, fetch_raw_profiles};
+use serde_json::{json, Value};
+use crate::api::hypixel_api::get_cached_profiles;
 
 #[tauri::command]
-pub async fn get_player_profiles(username: String) -> Result<Value, String> {
-    // Step 1: Resolve UUID
-    let uuid = get_player_uuid(&username).await?;
+pub async fn get_player_profiles() -> Result<Value, String> {
+    let data = get_cached_profiles()?;
 
-    // Step 2: Fetch raw Hypixel profiles JSON
-    let profiles = fetch_raw_profiles(&uuid).await?;
+    let profiles = data["profiles"]
+        .as_array()
+        .ok_or("Invalid profile format")?;
 
-    // Step 3: Return raw JSON directly to the UI
-    Ok(profiles)
+    let simplified: Vec<Value> = profiles
+        .iter()
+        .map(|p| {
+            json!({
+                "profile_id": p["profile_id"],
+                "cute_name": p["cute_name"],
+                "selected": p["selected"],
+                "members": p["members"],
+            })
+        })
+        .collect();
+
+    Ok(json!({ "profiles": simplified }))
 }

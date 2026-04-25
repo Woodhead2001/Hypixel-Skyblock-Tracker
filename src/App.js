@@ -10,6 +10,7 @@ import { GoalTracker } from './components/GoalTracker.jsx';
 import { InventoryView } from './components/InventoryView.jsx';
 import { CraftPlanner } from './components/CraftPlanner.jsx';
 import { PlayerSearch } from './components/PlayerSearch.jsx';
+import CollectionsPage from './components/CollectionsPage.jsx';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -39,6 +40,8 @@ function App() {
         return <CraftPlanner />;
       case 'search':
         return <PlayerSearch />;
+        case 'collections':
+          return <CollectionsPage />;
       default:
         return <Dashboard />;
     }
@@ -87,6 +90,12 @@ function App() {
               onClick={() => setCurrentPage('goals')}
             >
               🎯 Goals
+            </button>
+            <button
+              className={`nav-item ${currentPage === 'collections' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('collections')}
+            >
+              🗂️ Collections
             </button>
           </nav>
         </aside>

@@ -1,6 +1,6 @@
 {
   "hypixel_api_key": "dd532b8d-84c1-4f4e-b2cc-6cdc4751987a",
   "minecraft_uuid_lookup_url": "https://api.mojang.com/users/profiles/minecraft/",
-  "hypixel_skills_url": "https://api.hypixel.net/v2/resources/skyblock/skills",
-  "hypixel_profiles_url": "https://api.hypixel.net/v2/skyblock/profiles"
+  "hypixel_skills_url": "https://api.hypixel.net/v2/resources/skyblock/skills/",
+  "hypixel_profiles_url": "https://api.hypixel.net/v2/skyblock/profiles?uuid="
 }
