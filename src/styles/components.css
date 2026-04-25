@@ -131,3 +131,73 @@
   text-decoration: line-through;
   color: var(--text-light);
 }
+
+/* Collections Page */
+.collections-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.collections-title {
+  font-size: var(--font-size-2xl);
+  margin-bottom: 1rem;
+}
+
+.skill-section {
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.skill-title {
+  font-size: var(--font-size-xl);
+  margin-bottom: 1rem;
+  color: var(--primary-blue);
+}
+
+.minion-row {
+  margin-bottom: 1.25rem;
+}
+
+.minion-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-dark);
+}
+
+.tier-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tier-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  transition: all 0.2s ease;
+}
+
+/* Owned tier = green */
+.tier-box.owned {
+  background-color: #4caf50;
+  border-color: #3e8e41;
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Missing tier = subtle grey */
+.tier-box.missing {
+  background-color: var(--lighter-blue);
+  color: var(--text-light);
+}

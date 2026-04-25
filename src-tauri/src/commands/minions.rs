@@ -8,8 +8,9 @@ use std::sync::Mutex;
 static MINION_DEFINITIONS_CACHE: Lazy<Mutex<Option<Value>>> =
     Lazy::new(|| Mutex::new(None));
 
-async fn fetch_minion_definitions() -> Result<Value, String> {
-    info!("Fetching collection definitions from Hypixel API");
+/// Fetch ALL minions from /skyblock/items
+async fn fetch_all_minions() -> Result<Value, String> {
+    info!("Fetching ALL minions from Hypixel items API");
 
     // Step 1: check cache
     {
@@ -19,9 +20,8 @@ async fn fetch_minion_definitions() -> Result<Value, String> {
         }
     }
 
-    // Step 2: fetch full data
-    let url = "https://api.hypixel.net/v2/resources/skyblock/collections";
     let client = Client::new();
+    let url = "https://api.hypixel.net/v2/resources/skyblock/items";
 
     let response = client
         .get(url)
@@ -31,45 +31,53 @@ async fn fetch_minion_definitions() -> Result<Value, String> {
 
     let full: Value = response.json().await.map_err(|e| e.to_string())?;
 
-    // Step 3: build grouped structure: skill → [item names]
-    let mut grouped = json!({ "collections": {} });
+    let mut minions: Vec<String> = vec![];
 
-    if let Some(collections) = full["collections"].as_object() {
-        for (skill_id, skill_data) in collections {
-            // Convert skill name to Title Case
-            let skill_name = skill_id
-                .to_lowercase()
-                .chars()
-                .enumerate()
-                .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
-                .collect::<String>();
+    if let Some(items) = full["items"].as_array() {
+        for item in items {
+            if let Some(id) = item["id"].as_str() {
+                // Match CARROT_GENERATOR_1, FLOWER_GENERATOR_1, etc.
+                if id.contains("_GENERATOR_") {
+                    let base = id.split("_GENERATOR_").next().unwrap_or(id);
 
-            let mut item_list = vec![];
+                    // Convert to readable name
+                    let name = base
+                        .to_lowercase()
+                        .split('_')
+                        .map(|w| {
+                            let mut chars = w.chars();
+                            match chars.next() {
+                                None => String::new(),
+                                Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" ");
 
-            // Correct path: items are inside skill_data["items"]
-            if let Some(item_map) = skill_data["items"].as_object() {
-                for (item_id, item_data) in item_map {
-                    let name = item_data["name"].as_str().unwrap_or(item_id);
-                    item_list.push(json!(name));
+                    minions.push(name);
                 }
             }
-
-            grouped["collections"][skill_name] = json!(item_list);
         }
     }
 
-    // Step 4: cache result
+    // Deduplicate
+    minions.sort();
+    minions.dedup();
+
+    let result = json!({ "minions": minions });
+
+    // Cache it
     {
         let mut cache = MINION_DEFINITIONS_CACHE.lock().unwrap();
-        *cache = Some(grouped.clone());
+        *cache = Some(result.clone());
     }
 
-    Ok(grouped)
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn get_minions(cute_name: String) -> Result<Value, String> {
-    info!("Fetching grouped minions for cute_name={}", cute_name);
+    info!("Fetching minions for cute_name={}", cute_name);
 
     // Load cached profiles
     let data = get_cached_profiles()?;
@@ -104,49 +112,41 @@ pub async fn get_minions(cute_name: String) -> Result<Value, String> {
         .unwrap_or(&vec![])
         .clone();
 
-    // Fetch grouped collection names
-    let defs = fetch_minion_definitions().await?;
+    // Fetch ALL minion names
+    let defs = fetch_all_minions().await?;
+    let names = defs["minions"].as_array().unwrap();
 
-    let mut result = json!({});
+    let mut result_list = vec![];
 
-    // Build 12-tier minions grouped by skill
-    if let Some(groups) = defs["collections"].as_object() {
-        for (skill, items) in groups {
-            let mut skill_list = vec![];
+    for name_val in names {
+        let name = name_val.as_str().unwrap_or("Unknown");
+        let id = name.to_uppercase().replace(" ", "_");
 
-            for item_name in items.as_array().unwrap() {
-                let name = item_name.as_str().unwrap_or("Unknown");
-                let id = name.to_uppercase().replace(" ", "_");
+        let mut tiers = vec![];
 
-                let mut tiers = vec![];
+        for tier_num in 1..=12 {
+            let key = format!("{}_{}", id, tier_num);
 
-                for tier_num in 1..=12 {
-                    let key = format!("{}_{}", id, tier_num);
+            let owned = crafted
+                .iter()
+                .any(|v| v.as_str() == Some(&key));
 
-                    let owned = crafted
-                        .iter()
-                        .any(|v| v.as_str() == Some(&key));
-
-                    tiers.push(json!({
-                        "tier": tier_num,
-                        "owned": owned
-                    }));
-                }
-
-                skill_list.push(json!({
-                    "id": id,
-                    "name": name,
-                    "tiers": tiers
-                }));
-            }
-
-            result[skill] = json!(skill_list);
+            tiers.push(json!({
+                "tier": tier_num,
+                "owned": owned
+            }));
         }
+
+        result_list.push(json!({
+            "id": id,
+            "name": name,
+            "tiers": tiers
+        }));
     }
 
     Ok(json!({
         "uuid": uuid,
         "cute_name": cute_name,
-        "collections": result
+        "minions": result_list
     }))
 }
