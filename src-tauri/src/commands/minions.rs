@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use crate::api::hypixel_api::get_cached_profiles;
+use crate::config::loader::load_config;
 use log::info;
 use reqwest::Client;
 use once_cell::sync::Lazy;
@@ -20,8 +21,9 @@ async fn fetch_all_minions() -> Result<Value, String> {
         }
     }
 
+    let config = load_config()?;
     let client = Client::new();
-    let url = "https://api.hypixel.net/v2/resources/skyblock/items";
+    let url = &config.hypixel_items_url;
 
     let response = client
         .get(url)
