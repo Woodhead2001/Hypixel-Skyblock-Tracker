@@ -1,15 +1,16 @@
-// src-tauri/src/main.rs
-
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod db;
 mod commands;
 mod api;
+mod config;
 
 use tauri::Manager;
+use commands::*;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // Initialize database
             let app_data_dir = app
@@ -23,16 +24,15 @@ fn main() {
 
             db::init_db(&db_path).expect("Failed to initialize database");
 
-            // Store database path in app state for commands
+            // Store database path in app state
             app.manage(db::DbState::new(db_path));
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::get_player_data,
-            commands::save_player_data,
-            commands::fetch_hypixel_player,
-            commands::get_player_skills,
+            fetch_hypixel_player,
+            get_player_skills,
+            get_player_profiles
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

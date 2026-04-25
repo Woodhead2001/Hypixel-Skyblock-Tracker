@@ -1,7 +1,6 @@
 // Constants and configuration
 
 export const HYPIXEL_API_URL = 'https://api.hypixel.net';
-export const HYPIXEL_API_KEY = process.env.REACT_APP_HYPIXEL_API_KEY || '';
 
 export const CRAFT_RECURSION_DEPTH = 10;
 export const CACHE_DURATION = 3600000; // 1 hour

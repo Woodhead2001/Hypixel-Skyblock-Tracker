@@ -1,11 +1,23 @@
 {
+  "$schema": "https://schema.tauri.app/v2/tauri.conf.json",
   "productName": "Hypixel Tracker",
   "version": "0.0.1",
   "identifier": "com.hypixel.tracker",
   "build": {
-    "beforeDevCommand": "npm run start",
+    "beforeDevCommand": "npm start",
     "beforeBuildCommand": "npm run react-build",
     "devUrl": "http://localhost:3000",
-    "frontendDist": "../build"
+    "frontendDist": "../build",
+    "features": []
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Hypixel Tracker",
+        "width": 1200,
+        "height": 800
+      }
+    ]
   }
 }
