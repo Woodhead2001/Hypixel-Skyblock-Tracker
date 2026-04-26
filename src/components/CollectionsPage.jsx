@@ -1,27 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useProfiles } from "../contexts/ProfileContext.jsx";
+import "../styles/components.css";
 
 export default function CollectionsPage() {
   const { profiles, selectedProfileId } = useProfiles();
-  const [minions, setMinions] = useState(null);
+  const [collections, setCollections] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState({});
+  const [iconCache] = useState(() => new Map());
 
   const selectedProfile = profiles.find(
     (p) => p.profile_id === selectedProfileId
   );
 
+  // Load collections
   useEffect(() => {
     if (!selectedProfile) return;
 
     async function load() {
       try {
-        const data = await invoke("get_minions", {
-          cuteName: selectedProfile.cute_name,
+        setLoading(true);
+        setError(null);
+
+        const data = await invoke("get_player_collections", {
+          profileId: selectedProfile.profile_id,
         });
 
-        // FIX: backend returns { minions: [...] }
-        setMinions(data.minions);
+        console.log("🔍 FULL COLLECTIONS RESPONSE:", data);
+
+        setCollections(data.collections);
+
+        // expand all skills by default
+        const initial = {};
+        Object.keys(data.collections).forEach((skill) => {
+          initial[skill] = true;
+        });
+        setExpanded(initial);
+      } catch (err) {
+        console.error("❌ Failed to load collections:", err);
+        setError(err.message || "Failed to load collections");
       } finally {
         setLoading(false);
       }
@@ -30,29 +50,174 @@ export default function CollectionsPage() {
     load();
   }, [selectedProfile]);
 
-  if (loading) return <p>Loading minions…</p>;
-  if (!minions) return <p>No minion data available.</p>;
+  // Load icons for each item
+  async function loadIconFor(item) {
+    const key = item.id;
+
+    if (iconCache.has(key)) {
+      return iconCache.get(key);
+    }
+
+    try {
+      const res = await invoke("get_item_icon", {
+        id: item.id,
+        material: item.id, // SkyBlock icons always come from CATS
+      });
+
+      if (res?.path) {
+        console.log("🖼 Loaded icon:", item.id, res.path);
+        iconCache.set(key, res.path);
+        return res.path;
+      } else {
+        console.warn("⚠ No icon for:", item.id);
+        iconCache.set(key, null);
+        return null;
+      }
+    } catch (err) {
+      console.error("❌ Icon load failed:", item.id, err);
+      iconCache.set(key, null);
+      return null;
+    }
+  }
+
+  // Inject icons into items
+  const itemsWithIcons = useMemo(() => {
+    if (!collections) return {};
+
+    const out = {};
+
+    for (const [skill, group] of Object.entries(collections)) {
+      out[skill] = {
+        ...group,
+        items: group.items.map((item) => ({
+          ...item,
+          iconPromise: loadIconFor(item),
+        })),
+      };
+    }
+
+    return out;
+  }, [collections]);
+
+  const filtered = useMemo(() => {
+    if (!itemsWithIcons) return {};
+
+    const q = search.toLowerCase();
+    const result = {};
+
+    for (const [skill, group] of Object.entries(itemsWithIcons)) {
+      const items = group.items.filter((c) =>
+        c.name.toLowerCase().includes(q)
+      );
+
+      result[skill] = { ...group, items };
+    }
+
+    return result;
+  }, [itemsWithIcons, search]);
+
+  if (loading) return <p>Loading collections…</p>;
+  if (error) return <p className="error">{error}</p>;
 
   return (
     <div className="collections-page">
-      <h2>Minion Collections</h2>
+      <div className="collections-header">
+        <h2>SkyBlock Collections</h2>
+        <input
+          className="collections-search"
+          placeholder="Search collections…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-      {minions.map((m) => (
-        <div key={m.id} className="minion-row">
-          <h3>{m.name}</h3>
+      {Object.entries(filtered).map(([skill, group]) => {
+        const isOpen = expanded[skill];
 
-          <div className="tier-grid">
-            {m.tiers.map((t) => (
-              <div
-                key={t.tier}
-                className={`tier-box ${t.owned ? "owned" : "missing"}`}
-              >
-                {t.tier}
+        return (
+          <div key={skill} className="skill-section">
+            <div
+              className="skill-header"
+              onClick={() =>
+                setExpanded((prev) => ({ ...prev, [skill]: !isOpen }))
+              }
+            >
+              <h3 className="skill-title">{skill}</h3>
+              <div className="skill-summary">
+                {group.completed_tiers} / {group.total_tiers} tiers completed
               </div>
-            ))}
+              <div className="skill-toggle">{isOpen ? "−" : "+"}</div>
+            </div>
+
+            {isOpen && (
+              <div className="collections-grid">
+                {group.items.map((c) => {
+                  const [icon, setIcon] = useState(null);
+
+                  useEffect(() => {
+                    let mounted = true;
+                    c.iconPromise.then((path) => {
+                      if (mounted) setIcon(path);
+                    });
+                    return () => (mounted = false);
+                  }, [c.iconPromise]);
+
+                  return (
+                    <div
+                      key={c.id}
+                      className={`collection-card ${
+                        c.maxed ? "collection-card-maxed" : ""
+                      }`}
+                    >
+                      <div className="collection-name">
+                        {icon && (
+                          <img
+                            src={icon}
+                            alt={c.name}
+                            className="collection-icon"
+                            onError={(e) => {
+                              console.error("❌ Image failed:", c.id, icon);
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        )}
+                        {c.name}
+                      </div>
+
+                      <div className="collection-tier-display">
+                        <div className="tier-label">Tier</div>
+                        <div className="tier-value">
+                          {c.tier} / {c.max_tier}
+                        </div>
+                        {c.maxed && (
+                          <div className="collection-badge-maxed">MAXED</div>
+                        )}
+                      </div>
+
+                      {!c.maxed && (
+                        <div className="collection-progress">
+                          <div className="collection-progress-label">
+                            {c.count.toLocaleString()} /{" "}
+                            {c.next_required.toLocaleString()} (
+                            {Math.floor(c.progress * 100)}%)
+                          </div>
+
+                          <div className="progress-bar">
+                            <div
+                              className="progress-fill"
+                              style={{ width: `${c.progress * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

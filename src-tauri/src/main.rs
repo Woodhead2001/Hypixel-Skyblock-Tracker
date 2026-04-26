@@ -1,54 +1,52 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 
-mod commands;
-mod api;
-mod config;
-
+use log::{info, error};
 use tauri::Manager;
-use commands::*;
-use api::hypixel_api::{get_player_uuid, fetch_and_cache_profiles};
-use config::loader::load_config;
+
+mod icons;
+mod commands;
+
+use icons::cats_extractor::extract_cats;
+use commands::icons::{get_item_icon, export_item_icon};
+
+fn init_logging() {
+    // Simple logger for development; replace with env_logger if you prefer.
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Debug)
+        .init()
+        .expect("Failed to init logger");
+}
+
+fn run_cats_extractor() {
+    info!("Running CATS extractor at startup…");
+
+    if let Err(e) = extract_cats("pack.cats", "icons/skyblock") {
+        error!("CATS extraction failed: {}", e);
+    } else {
+        info!("CATS extraction completed successfully.");
+    }
+}
 
 fn main() {
-    env_logger::init();
+    init_logging();
+    info!("Starting backend…");
+
+    run_cats_extractor();
+
+    info!("Launching Tauri…");
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
+        .invoke_handler(tauri::generate_handler![
+            get_item_icon,
+            export_item_icon
+        ])
         .setup(|app| {
-            // Initialize database
-            let app_data_dir = app
-                .path()
-                .app_data_dir()
-                .expect("Failed to get app data dir");
-
-            std::fs::create_dir_all(&app_data_dir).ok();
-            // -------------------------------
-            // ⭐ Fetch SkyBlock data on startup
-            // -------------------------------
-            tauri::async_runtime::spawn(async move {
-                let config = match load_config() {
-                    Ok(cfg) => cfg,
-                    Err(e) => {
-                        eprintln!("Failed to load config: {}", e);
-                        return;
-                    }
-                };
-                
-                let username = &config.default_username;
-                if let Ok(uuid) = get_player_uuid(username).await {
-                    let _ = fetch_and_cache_profiles(&uuid).await;
-                }
-            });
-
+            info!("Tauri setup complete. App ready.");
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            fetch_hypixel_player,
-            get_player_skills,
-            get_player_profiles,
-            get_minions,
-            get_app_config
-        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
