@@ -50,37 +50,43 @@ export default function CollectionsPage() {
     load();
   }, [selectedProfile]);
 
-  // Load icons for each item
-  async function loadIconFor(item) {
-    const key = item.id;
+  // Load icons for all items (top-level hook, legal)
+  useEffect(() => {
+    if (!collections) return;
 
-    if (iconCache.has(key)) {
-      return iconCache.get(key);
-    }
+    async function loadAllIcons() {
+      for (const group of Object.values(collections)) {
+        for (const item of group.items) {
+          const key = item.id;
 
-    try {
-      const res = await invoke("get_item_icon", {
-        id: item.id,
-        material: item.id, // SkyBlock icons always come from CATS
-      });
+          if (iconCache.has(key)) continue;
 
-      if (res?.path) {
-        console.log("🖼 Loaded icon:", item.id, res.path);
-        iconCache.set(key, res.path);
-        return res.path;
-      } else {
-        console.warn("⚠ No icon for:", item.id);
-        iconCache.set(key, null);
-        return null;
+          try {
+            const res = await invoke("get_item_icon", {
+              id: item.id,
+              material: item.id,
+            });
+
+            if (res?.path) {
+              iconCache.set(key, res.path);
+            } else {
+              iconCache.set(key, null);
+            }
+          } catch (err) {
+            console.error("❌ Icon load failed:", item.id, err);
+            iconCache.set(key, null);
+          }
+        }
       }
-    } catch (err) {
-      console.error("❌ Icon load failed:", item.id, err);
-      iconCache.set(key, null);
-      return null;
-    }
-  }
 
-  // Inject icons into items
+      // trigger re-render
+      setCollections((prev) => ({ ...prev }));
+    }
+
+    loadAllIcons();
+  }, [collections, iconCache]);
+
+  // Attach icons to items
   const itemsWithIcons = useMemo(() => {
     if (!collections) return {};
 
@@ -91,13 +97,13 @@ export default function CollectionsPage() {
         ...group,
         items: group.items.map((item) => ({
           ...item,
-          iconPromise: loadIconFor(item),
+          icon: iconCache.get(item.id) || null,
         })),
       };
     }
 
     return out;
-  }, [collections]);
+  }, [collections, iconCache]);
 
   const filtered = useMemo(() => {
     if (!itemsWithIcons) return {};
@@ -151,68 +157,56 @@ export default function CollectionsPage() {
 
             {isOpen && (
               <div className="collections-grid">
-                {group.items.map((c) => {
-                  const [icon, setIcon] = useState(null);
+                {group.items.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`collection-card ${
+                      c.maxed ? "collection-card-maxed" : ""
+                    }`}
+                  >
+                    <div className="collection-name">
+                      {c.icon && (
+                        <img
+                          src={c.icon}
+                          alt={c.name}
+                          className="collection-icon"
+                          onError={(e) => {
+                            console.error("❌ Image failed:", c.id, c.icon);
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      )}
+                      {c.name}
+                    </div>
 
-                  useEffect(() => {
-                    let mounted = true;
-                    c.iconPromise.then((path) => {
-                      if (mounted) setIcon(path);
-                    });
-                    return () => (mounted = false);
-                  }, [c.iconPromise]);
-
-                  return (
-                    <div
-                      key={c.id}
-                      className={`collection-card ${
-                        c.maxed ? "collection-card-maxed" : ""
-                      }`}
-                    >
-                      <div className="collection-name">
-                        {icon && (
-                          <img
-                            src={icon}
-                            alt={c.name}
-                            className="collection-icon"
-                            onError={(e) => {
-                              console.error("❌ Image failed:", c.id, icon);
-                              e.target.style.display = "none";
-                            }}
-                          />
-                        )}
-                        {c.name}
+                    <div className="collection-tier-display">
+                      <div className="tier-label">Tier</div>
+                      <div className="tier-value">
+                        {c.tier} / {c.max_tier}
                       </div>
-
-                      <div className="collection-tier-display">
-                        <div className="tier-label">Tier</div>
-                        <div className="tier-value">
-                          {c.tier} / {c.max_tier}
-                        </div>
-                        {c.maxed && (
-                          <div className="collection-badge-maxed">MAXED</div>
-                        )}
-                      </div>
-
-                      {!c.maxed && (
-                        <div className="collection-progress">
-                          <div className="collection-progress-label">
-                            {c.count.toLocaleString()} /{" "}
-                            {c.next_required.toLocaleString()} (
-                            {Math.floor(c.progress * 100)}%)
-                          </div>
-
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{ width: `${c.progress * 100}%` }}
-                            />
-                          </div>
-                        </div>
+                      {c.maxed && (
+                        <div className="collection-badge-maxed">MAXED</div>
                       )}
                     </div>
-                  );
-                })}
+
+                    {!c.maxed && (
+                      <div className="collection-progress">
+                        <div className="collection-progress-label">
+                          {c.count.toLocaleString()} /{" "}
+                          {c.next_required.toLocaleString()} (
+                          {Math.floor(c.progress * 100)}%)
+                        </div>
+
+                        <div className="progress-bar">
+                          <div
+                            className="progress-fill"
+                            style={{ width: `${c.progress * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

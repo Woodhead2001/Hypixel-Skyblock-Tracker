@@ -3,10 +3,7 @@ use std::path::PathBuf;
 
 use log::{info, debug, error};
 
-use crate::icons::icons::{resolve_icon, export_icon};
-
 /// Represents a SkyBlock item from your backend.
-/// Adjust this struct to match your actual item model.
 #[derive(Debug, Clone)]
 pub struct SkyblockItem {
     pub id: String,       // e.g. "DIVAN_ALLOY"
@@ -36,6 +33,15 @@ fn normalize_material(mat: &str) -> String {
     mat.trim().to_uppercase()
 }
 
+/// Base directory where icons live (after CATS extraction).
+fn base_icons_dir() -> PathBuf {
+    // Current working dir / icons / skyblock
+    std::env::current_dir()
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("icons")
+        .join("skyblock")
+}
+
 /// Main mapping function:
 /// Given a SkyblockItem, return the icon path (if any).
 pub fn map_item_icon(item: &SkyblockItem) -> Option<PathBuf> {
@@ -46,36 +52,36 @@ pub fn map_item_icon(item: &SkyblockItem) -> Option<PathBuf> {
 
     // 1. Check cache
     if let Some(path) = cache().get(&cache_key) {
-        debug!("Cache hit for {}", cache_key);
+        //debug!("Icon cache hit for {}", cache_key);
         return Some(path.clone());
     }
 
-    info!("Mapping icon for item_id={} material={}", id, material);
+    //info!("Mapping icon for item_id={} material={}", id, material);
 
-    // 2. Resolve icon
-    let resolved = resolve_icon(&id, &material);
+    // Very simple strategy for now:
+    //   icons/skyblock/<id>.png  (id already uppercased; we can lower it for filenames)
+    let candidate = base_icons_dir().join(format!("{}.png", id.to_lowercase()));
 
-    if let Some(path) = resolved.clone() {
-        cache().insert(cache_key, path.clone());
-        return Some(path);
+    if candidate.exists() {
+        //debug!("Resolved icon path: {:?}", candidate);
+        cache().insert(cache_key, candidate.clone());
+        Some(candidate)
+    } else {
+        //error!("Icon file not found for item_id={} at {:?}", id, candidate);
+        None
     }
-
-    error!("Failed to map icon for item_id={} material={}", id, material);
-    None
 }
 
 /// Optional: export icon into a final directory for frontend consumption.
+/// For now, we just return the resolved path (no extra copying).
 pub fn export_item_icon(item: &SkyblockItem) -> Option<PathBuf> {
     let id = normalize_id(&item.id);
     let material = normalize_material(&item.material);
 
     info!("Exporting icon for item_id={} material={}", id, material);
 
-    let exported = export_icon(&id, &material);
+    let path = map_item_icon(&SkyblockItem { id, material })?;
 
-    if exported.is_none() {
-        error!("Failed to export icon for {}", id);
-    }
-
-    exported
+    // If you later want to copy into a web‑served dir, do it here.
+    Some(path)
 }

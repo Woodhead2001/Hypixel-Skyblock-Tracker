@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use image::{ImageBuffer, RgbaImage};
+    use image::{ImageBuffer, RgbaImage};
 use log::{debug, error, info};
 
 #[derive(Debug)]
@@ -69,7 +69,12 @@ pub fn extract_cats<P: AsRef<Path>>(cats_path: P, out_dir: P) -> Result<()> {
         let name_len = read_u8(&mut cur)? as usize;
         let mut name_buf = vec![0u8; name_len];
         cur.read_exact(&mut name_buf)?;
-        let name = String::from_utf8(name_buf)?;
+
+        // 🔥 FIX: handle non‑UTF‑8 sprite names safely
+        let name = match String::from_utf8(name_buf) {
+            Ok(s) => s,
+            Err(_) => format!("sprite_{}", i),
+        };
 
         let x = read_u16_le(&mut cur)?;
         let y = read_u16_le(&mut cur)?;
@@ -124,7 +129,7 @@ pub fn extract_cats<P: AsRef<Path>>(cats_path: P, out_dir: P) -> Result<()> {
             }
         }
 
-        let out_path = out_dir.as_ref().join(&name);
+        let out_path = out_dir.as_ref().join(format!("{}.png", name));
 
         if let Err(e) = sub.save(&out_path) {
             error!("Failed to save sprite {}: {}", name, e);
