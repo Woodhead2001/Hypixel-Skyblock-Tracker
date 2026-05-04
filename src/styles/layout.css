@@ -20,16 +20,51 @@
 }
 
 .app-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 1rem;
+  width: 100%;
+  padding: 0;
+  background: url("../assets/header_background.jpg");
+  background-size: cover;/* or whatever your theme is */
+  background-position: center;
+  background-repeat: no-repeat;
+  text-align: center;
 }
 
 .app-header h1 {
-  font-size: var(--font-size-xl);
+font-family: 'Orbitron', sans-serif;
+
+  font-size: 3.5rem;
   margin: 0;
-  color: var(--primary-blue);
+  font-weight: 800;
+  text-align: center;
+
+  /* Rainbow gradient */
+  background: linear-gradient(
+    90deg,
+    #ff004c,
+    #ff8a00,
+    #faff00,
+    #00ff6a,
+    #8a00ff,
+    #ff00e6
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  color: transparent;
+
+  /* Neon glow */
+  text-shadow: 0 0 10px rgba(255,255,255,0.4);
+
+  /* Animation */
+  animation: rainbowShift 6s ease infinite;
 }
+
+@keyframes rainbowShift {
+  0% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+  100% { background-position: 0% 50% }
+}
+
+
 
 .app-nav {
   flex: 1;
