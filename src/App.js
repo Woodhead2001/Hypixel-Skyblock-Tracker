@@ -31,11 +31,11 @@ function App() {
   return (
     <ProfileProvider>
       <div className="App">
+        <div className="app-header">
+              <h1>⛏️ SkyTracker</h1>
+          </div>
         <div className="app-layout">
           <aside className="app-sidebar">
-            <div className="app-header">
-              <h1>⛏️ SkyTracker</h1>
-            </div>
             <nav className="app-nav">
               <button className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('dashboard')}>📊 Dashboard</button>
               <button className={`nav-item ${currentPage === 'collections' ? 'active' : ''}`} onClick={() => setCurrentPage('collections')}>🗂️ Collections</button>
