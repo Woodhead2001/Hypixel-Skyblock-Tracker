@@ -43,7 +43,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            fetch_hypixel_player,
+            fetch_username,
             get_player_skills,
             get_player_profiles,
             get_minions,

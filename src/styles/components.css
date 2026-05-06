@@ -201,3 +201,32 @@
   background-color: var(--lighter-blue);
   color: var(--text-light);
 }
+
+  /* Container holding username + selector */
+.profile-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+/* Shared style for username, label, and dropdown */
+.profile-username,
+.profile-label,
+.profile-select {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #1f1f1f;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+}
+
+/* Dropdown menu items */
+.profile-select option {
+  background: #ffffff;
+  color: #000000;
+}
+
+
