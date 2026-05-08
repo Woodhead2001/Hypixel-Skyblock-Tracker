@@ -5,6 +5,7 @@ import './styles/components.css';
 
 import Dashboard from "./components/Dashboard.jsx";
 import CollectionsPage from './components/CollectionsPage.jsx';
+import MinionsPage from './components/MinionsPage.jsx';
 
 import { ProfileProvider } from "./contexts/ProfileContext.jsx";
 import ProfileSelector from "./components/ProfileSelector.jsx";
@@ -23,6 +24,8 @@ function App() {
         return <Dashboard />;
       case 'collections':
         return <CollectionsPage />;
+      case 'minions':
+        return <MinionsPage />;
       default:
         return <Dashboard />;
     }
@@ -39,6 +42,7 @@ function App() {
             <nav className="app-nav">
               <button className={`nav-item ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('dashboard')}>📊 Dashboard</button>
               <button className={`nav-item ${currentPage === 'collections' ? 'active' : ''}`} onClick={() => setCurrentPage('collections')}>🗂️ Collections</button>
+              <button className={`nav-item ${currentPage === 'minions' ? 'active' : ''}`} onClick={() => setCurrentPage('minions')}>🦾 Minions</button>
             </nav>
           </aside>
 

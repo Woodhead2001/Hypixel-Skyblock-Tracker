@@ -4,83 +4,62 @@ use crate::config::loader::load_config;
 use crate::icons::get_icon;
 use log::info;
 use reqwest::Client;
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
+use std::collections::{BTreeSet, HashSet};
 
-static MINION_DEFINITIONS_CACHE: Lazy<Mutex<Option<Value>>> =
-    Lazy::new(|| Mutex::new(None));
-
-/// Fetch ALL minions from /skyblock/items
-async fn fetch_all_minions() -> Result<Value, String> {
-    info!("Fetching ALL minions from Hypixel items API");
-
-    // Step 1: check cache
-    {
-        let cache = MINION_DEFINITIONS_CACHE.lock().unwrap();
-        if let Some(cached) = cache.clone() {
-            return Ok(cached);
+/// Convert crafted format (ZOMBIE_8) → generator format (ZOMBIE_GENERATOR_8)
+fn crafted_to_generator(id: &str) -> Option<String> {
+    if let Some((base, tier)) = id.rsplit_once('_') {
+        if tier.parse::<u32>().is_ok() {
+            return Some(format!("{}_GENERATOR_{}", base, tier));
         }
     }
+    None
+}
 
+/// Extract NAME_GENERATOR from NAME_GENERATOR_1
+fn extract_base(id_str: &str) -> String {
+    if let Some((base, tier)) = id_str.rsplit_once('_') {
+        if tier.parse::<u32>().is_ok() {
+            return base.to_string();
+        }
+    }
+    id_str.to_string()
+}
+
+/// Fetch ALL minion bases from Hypixel items API.
+async fn fetch_all_minion_bases() -> Result<BTreeSet<String>, String> {
     let config = load_config()?;
     let client = Client::new();
-    let url = &config.hypixel_items_url;
 
     let response = client
-        .get(url)
+        .get(&config.hypixel_items_url)
         .send()
         .await
         .map_err(|e| e.to_string())?;
 
     let full: Value = response.json().await.map_err(|e| e.to_string())?;
 
-    let mut minions: Vec<String> = vec![];
+    let mut bases = BTreeSet::new();
 
     if let Some(items) = full["items"].as_array() {
         for item in items {
             if let Some(id) = item["id"].as_str() {
-                // Match CARROT_GENERATOR_1, FLOWER_GENERATOR_1, etc.
-                if id.contains("_GENERATOR_") {
-                    let base = id.split("_GENERATOR_").next().unwrap_or(id);
-
-                    // Convert to readable name
-                    let name = base
-                        .to_lowercase()
-                        .split('_')
-                        .map(|w| {
-                            let mut chars = w.chars();
-                            match chars.next() {
-                                None => String::new(),
-                                Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" ");
-
-                    minions.push(name);
+                // Only accept NAME_GENERATOR_<tier>
+                if let Some((base, tier)) = id.rsplit_once('_') {
+                    if tier.parse::<u32>().is_ok() && base.ends_with("_GENERATOR") {
+                        bases.insert(base.to_string());
+                    }
                 }
             }
         }
     }
 
-    // Deduplicate
-    minions.sort();
-    minions.dedup();
-
-    let result = json!({ "minions": minions });
-
-    // Cache it
-    {
-        let mut cache = MINION_DEFINITIONS_CACHE.lock().unwrap();
-        *cache = Some(result.clone());
-    }
-
-    Ok(result)
+    Ok(bases)
 }
 
 #[tauri::command]
-pub async fn get_minions(cute_name: String) -> Result<Value, String> {
-    info!("Fetching minions for cute_name={}", cute_name);
+pub async fn get_minions(profileId: String) -> Result<Value, String> {
+    info!("Fetching minions for profileId={}", profileId);
 
     // Load cached profiles
     let data = get_cached_profiles()?;
@@ -94,64 +73,65 @@ pub async fn get_minions(cute_name: String) -> Result<Value, String> {
         .as_array()
         .ok_or("Invalid profile format")?;
 
-    // Find profile by cute_name
+    // Find profile
     let profile = profiles
         .iter()
-        .find(|p| p["cute_name"].as_str() == Some(cute_name.as_str()))
-        .ok_or("Profile not found for this cute_name")?;
+        .find(|p| p["profile_id"].as_str() == Some(profileId.as_str()))
+        .ok_or("Profile not found")?;
 
-    // Ensure player is in this profile
+    // Get member
     let members = profile["members"]
         .as_object()
         .ok_or("Invalid members format")?;
 
     let member = members
         .get(&uuid)
-        .ok_or("This player is not a member of this profile")?;
+        .ok_or("Player not in this profile")?;
 
     // Crafted minions list
-    let crafted = member["player_data"]["crafted_generators"]
+    let crafted_raw = member["player_data"]["crafted_generators"]
         .as_array()
         .unwrap_or(&vec![])
         .clone();
 
-    // Fetch ALL minion names
-    let defs = fetch_all_minions().await?;
-    let names = defs["minions"].as_array().unwrap();
+    // Convert crafted entries to generator format
+    let crafted_set: HashSet<String> = crafted_raw
+        .iter()
+        .filter_map(|v| v.as_str())
+        .filter_map(|s| crafted_to_generator(s))
+        .collect();
+
+    info!("Crafted entries converted: {}", crafted_set.len());
+
+    // Fetch ALL minion bases from /skyblock/items
+    let all_bases = fetch_all_minion_bases().await?;
 
     let mut result_list = vec![];
 
-    for name_val in names {
-        let name = name_val.as_str().unwrap_or("Unknown");
-        let id = name.to_uppercase().replace(" ", "_");
+    for base in all_bases {
+        let pretty = base
+            .replace("_GENERATOR", "")
+            .to_lowercase()
+            .replace('_', " ");
 
         let mut tiers = vec![];
 
         for tier_num in 1..=12 {
-            let key = format!("{}_{}", id, tier_num);
-
-            let owned = crafted
-                .iter()
-                .any(|v| v.as_str() == Some(&key));
-
-            tiers.push(json!({
-                "tier": tier_num,
-                "owned": owned,
-                "icon": get_icon(&key)
-            }));
+            let key = format!("{}_{}", base, tier_num);
+            let owned = crafted_set.contains(&key);
+            tiers.push(owned);
         }
 
         result_list.push(json!({
-            "id": id,
-            "name": name,
-            "icon": get_icon(&id),
+            "id": base,
+            "name": pretty,
+            "icon": get_icon(&base),
             "tiers": tiers
         }));
     }
 
     Ok(json!({
-        "uuid": uuid,
-        "cute_name": cute_name,
+        "profileId": profileId,
         "minions": result_list
     }))
 }

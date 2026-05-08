@@ -396,4 +396,51 @@
   color: #000000;
 }
 
+.minions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
+.minion-row {
+  display: grid;
+  grid-template-columns: 200px 1fr; /* name | tiers */
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.minion-name {
+  font-size: 16px;
+  font-weight: 500;
+  text-transform: capitalize;
+  justify-self: start;
+}
+
+.minion-tiers {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  justify-self: start;
+}
+
+.tier-box {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  user-select: none;
+}
+
+.tier-box.owned {
+  background-color: #4caf50;
+  color: white;
+}
+
+.tier-box.missing {
+  background-color: #333;
+  color: #aaa;
+}
