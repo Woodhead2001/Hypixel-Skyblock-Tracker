@@ -13,11 +13,18 @@ export function ProfileProvider({ children }) {
   useEffect(() => {
     async function load() {
       try {
+        setLoadingProfiles(true);
+
+        // 🔥 REQUIRED STEP — fetch Hypixel data first
+        await invoke("fetch_hypixel_player", { username: "amaxdumbidiot" });
+
+        // Now the backend cache is populated
         const data = await invoke("get_player_profiles");
         const list = data?.profiles || [];
 
         setProfiles(list);
 
+        // Pick selected profile
         const active = list.find((p) => p.selected === true);
         if (active) {
           setSelectedProfileId(active.profile_id);
