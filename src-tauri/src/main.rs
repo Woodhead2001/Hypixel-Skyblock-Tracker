@@ -14,6 +14,7 @@ mod commands;
 use crate::utils::cats_extractor::extract_cats;
 use crate::utils::pack_loader::extract_pack_cats;
 use crate::utils::png_extractor::extract_pngs_from_pack;
+use crate::commands::fetch_username;
 
 use crate::icons::{get_item_icon, export_item_icon};
 use crate::commands::{
@@ -55,6 +56,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             fetch_username,
+            fetch_hypixel_player,
             get_player_skills,
             get_player_profiles,
             get_player_skills,
