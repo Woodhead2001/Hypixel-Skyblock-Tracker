@@ -1,16 +1,14 @@
 use std::{
     fs::{self, File},
-    io::{Read},
-    path::{Path, PathBuf},
+    io::Read,
+    path::Path,
 };
 
 use anyhow::{anyhow, Result};
 use log::{info, error};
 use zip::ZipArchive;
 
-/// Extract all PNGs from the SkyBlock resource pack ZIP in AppData.
 pub fn extract_pngs_from_pack() -> Result<()> {
-    // Path to the ZIP in AppData
     let appdata = std::env::var("APPDATA")
         .map_err(|e| anyhow!("Failed to read APPDATA: {}", e))?;
 
@@ -27,42 +25,72 @@ pub fn extract_pngs_from_pack() -> Result<()> {
     let file = File::open(&zip_path)?;
     let mut zip = ZipArchive::new(file)?;
 
-    // Output directory
-    let out_dir = Path::new("icons").join("skyblock");
-    fs::create_dir_all(&out_dir)?;
+    let icons_dir = Path::new("..")
+        .join("public")
+        .join("icons")
+        .join("skyblock");
 
-    let mut extracted_count = 0;
+    let pack_root = Path::new("..")
+        .join("public")
+        .join("skyblock-pack");
+
+    fs::create_dir_all(&icons_dir)?;
+    fs::create_dir_all(&pack_root)?;
+
+    let mut png_count = 0;
+    let mut json_count = 0;
 
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
         let name = entry.name().to_string();
 
-        // Only extract PNGs
-        if !name.to_lowercase().ends_with(".png") {
+        if name.to_lowercase().ends_with(".png") {
+            if name.contains("cittofirmgenerated/textures/item/") {
+                let filename = match Path::new(&name).file_name() {
+                    Some(f) => f,
+                    None => continue,
+                };
+
+                let out_path = icons_dir.join(filename);
+
+                let mut buf = Vec::new();
+                entry.read_to_end(&mut buf)?;
+
+                if fs::write(&out_path, &buf).is_ok() {
+                    png_count += 1;
+                }
+            }
+
             continue;
         }
 
-        // Normalize filename (remove directories)
-        let filename = Path::new(&name)
-            .file_name()
-            .ok_or_else(|| anyhow!("Invalid PNG path: {}", name))?;
+        if name.to_lowercase().ends_with(".json") && name.contains("firmskyblock/models/item/") {
+            let out_path = pack_root.join(&name);
 
-        let out_path = out_dir.join(filename);
+            if let Some(parent) = out_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
 
-        let mut buf = Vec::new();
-        entry.read_to_end(&mut buf)?;
+            let mut buf = Vec::new();
+            entry.read_to_end(&mut buf)?;
 
-        if let Err(e) = fs::write(&out_path, &buf) {
-            error!("Failed to write {:?}: {}", out_path, e);
-        } else {
-            extracted_count += 1;
+            if fs::write(&out_path, &buf).is_ok() {
+                json_count += 1;
+            }
+
+            continue;
         }
     }
 
-    info!("Extracted {} PNG icons.", extracted_count);
+    info!("Extracted {} PNG item textures.", png_count);
+    info!("Extracted {} model JSONs.", json_count);
 
-    if extracted_count == 0 {
+    if png_count == 0 {
         return Err(anyhow!("No PNGs were extracted — pack may be incomplete."));
+    }
+
+    if json_count == 0 {
+        return Err(anyhow!("No model JSONs were extracted — cannot map SkyBlock items."));
     }
 
     Ok(())
