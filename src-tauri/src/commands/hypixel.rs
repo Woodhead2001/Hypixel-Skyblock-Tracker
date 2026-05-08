@@ -1,12 +1,16 @@
+use std::fs;
 use serde_json::{json, Value};
 
-use crate::api::hypixel_api::{
+use crate::config::loader::{AppConfig, load_config}::{
     get_player_uuid,
     fetch_and_cache_profiles,
     get_cached_profiles,
 };
 
 #[tauri::command]
+pub async fn fetch_username() -> Result<String, String> {
+    let config = load_config()?;
+    Ok(config.default_username)
 pub async fn fetch_hypixel_player(username: String) -> Result<Value, String> {
     // 1. Resolve UUID from Mojang
     let uuid = get_player_uuid(&username).await?;
@@ -24,3 +28,4 @@ pub async fn fetch_hypixel_player(username: String) -> Result<Value, String> {
         "profiles": cached["profiles"],
     }))
 }
+
