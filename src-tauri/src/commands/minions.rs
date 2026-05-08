@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 use crate::api::hypixel_api::get_cached_profiles;
 use crate::config::loader::load_config;
+use crate::icons::get_icon;
 use log::info;
 use reqwest::Client;
 use once_cell::sync::Lazy;
@@ -135,13 +136,15 @@ pub async fn get_minions(cute_name: String) -> Result<Value, String> {
 
             tiers.push(json!({
                 "tier": tier_num,
-                "owned": owned
+                "owned": owned,
+                "icon": get_icon(&key)
             }));
         }
 
         result_list.push(json!({
             "id": id,
             "name": name,
+            "icon": get_icon(&id),
             "tiers": tiers
         }));
     }
