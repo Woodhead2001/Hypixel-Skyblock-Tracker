@@ -21,6 +21,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+public/icons/skyblock/
+public/skyblock-pack/
 
 # Tauri
 src-tauri/target/
